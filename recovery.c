@@ -621,7 +621,7 @@ prompt_and_wait()
                             ui_print("\n");
 
                             if (!WIFEXITED(status3) || (WEXITSTATUS(status3) != 0)) {
-                                ui_print("Error performing restore!  Try running 'nandroid-mobile.sh backup' from console.\n\n");
+                                ui_print("Error performing restore!  Try running 'nandroid-mobile.sh restore' from console.\n\n");
                             } else {
                                 ui_print("Restore complete!\n\n");
                             }
