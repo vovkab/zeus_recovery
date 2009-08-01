@@ -382,7 +382,7 @@ choose_update_file()
         } else if ((key == KEY_UP || key == KEY_VOLUMEUP) && visible) {
             --selected;
             selected = ui_menu_select(selected);
-        } else if (key == BTN_MOUSE && visible) {
+        } else if ((key == BTN_MOUSE || key == KEY_I7500_CENTER) && visible) {
             chosen_item = selected;
         }
 
@@ -497,7 +497,7 @@ prompt_and_wait()
         } else if ((key == KEY_UP || key == KEY_VOLUMEUP) && visible) {
             --selected;
             selected = ui_menu_select(selected);
-        } else if (key == BTN_MOUSE && visible) {
+        } else if ((key == BTN_MOUSE || key == KEY_I7500_CENTER) && visible) {
             chosen_item = selected;
         }
 

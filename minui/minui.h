@@ -57,6 +57,9 @@ struct input_event;
 #define KEY_DREAM_BALL        272  // = BTN_MOUSE
 #define KEY_DREAM_TOUCH       330  // = BTN_TOUCH
 
+// For Samsung
+#define KEY_I7500_CENTER      232
+
 int ev_init(void);
 void ev_exit(void);
 int ev_get(struct input_event *ev, unsigned dont_wait);
