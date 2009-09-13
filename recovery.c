@@ -526,13 +526,6 @@ prompt_and_wait()
                     if (!ui_text_visible()) return;
                     break;
 
-                case ITEM_WIPE_CACHE:
-                    ui_print("\n-- Wiping cache...\n");
-                    erase_root("CACHE:");
-                    ui_print("Cache wipe complete.\n");
-                    if (!ui_text_visible()) return;
-                    break;
-
                 case ITEM_APPLY_SDCARD:
                     ui_print("\n-- Installing new image!");
                     ui_print("\n-- Press HOME to confirm, or");
