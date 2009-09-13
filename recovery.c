@@ -440,17 +440,15 @@ prompt_and_wait()
 
 // these constants correspond to elements of the items[] list.
 #define ITEM_REBOOT        0
-#define ITEM_APPLY_SDCARD  1
-#define ITEM_APPLY_UPDATE  2
-#define ITEM_WIPE_DATA     3
-#define ITEM_NANDROID      4
-#define ITEM_RESTORE       5
-#define ITEM_FSCK          6
-#define ITEM_CONSOLE       7
+#define ITEM_APPLY_UPDATE  1
+#define ITEM_WIPE_DATA     2
+#define ITEM_NANDROID      3
+#define ITEM_RESTORE       4
+#define ITEM_FSCK          5
+#define ITEM_CONSOLE       6
 
     static char* items[] = { "[Home+Back] reboot system now",
-                             "[Alt+S] apply sdcard:update.zip",
-                             "[Alt+A] apply any zip from sd",
+                             "[Alt+A] apply update from sdcard",
                              "[Alt+W] wipe data/factory reset",
                              "[Alt+B] nandroid v2.1 backup",
                              "[Alt+R] restore latest backup",
@@ -479,8 +477,6 @@ prompt_and_wait()
             chosen_item = ITEM_REBOOT;
         } else if (alt && key == KEY_W) {
             chosen_item = ITEM_WIPE_DATA;
-        } else if (alt && key == KEY_S) {
-            chosen_item = ITEM_APPLY_SDCARD;
         } else if (alt && key == KEY_A) {
             chosen_item = ITEM_APPLY_UPDATE;
         } else if (alt && key == KEY_B) {
@@ -522,33 +518,6 @@ prompt_and_wait()
                         ui_print("Data wipe complete.\n");
                     } else {
                         ui_print("\nData wipe aborted.\n");
-                    }
-                    if (!ui_text_visible()) return;
-                    break;
-
-                case ITEM_APPLY_SDCARD:
-                    ui_print("\n-- Installing new image!");
-                    ui_print("\n-- Press HOME to confirm, or");
-                    ui_print("\n-- any other key to abort..");
-                    int confirm_apply = ui_wait_key();
-                    if (confirm_apply == KEY_DREAM_HOME) {
-                        ui_print("\n-- Install from sdcard...\n");
-                        int status = install_package(SDCARD_PACKAGE_FILE);
-                        if (status != INSTALL_SUCCESS) {
-                            ui_set_background(BACKGROUND_ICON_ERROR);
-                            ui_print("Installation aborted.\n");
-                        } else if (!ui_text_visible()) {
-                            return;  // reboot if logs aren't visible
-                        } else {
-                            ui_print("Install from sdcard complete.\n");
-                        }
-                    } else {
-                      if (firmware_update_pending()) {
-                        ui_print("\nReboot via home+back or menu\n"
-                                 "to complete installation.\n");
-                      } else {
-                        ui_print("\nInstall from sdcard complete.\n");
-                      }
                     }
                     if (!ui_text_visible()) return;
                     break;
