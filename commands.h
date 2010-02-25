@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef RECOVERY_INSTALL_H_
-#define RECOVERY_INSTALL_H_
+#ifndef RECOVERY_COMMANDS_H_
+#define RECOVERY_COMMANDS_H_
 
-#include "common.h"
+#include "minzip/Zip.h"
 
-enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT, INSTALL_UPDATE_SCRIPT_MISSING };
-int install_package(const char *root_path);
+typedef struct {
+    ZipArchive *package;
+} RecoveryCommandContext;
 
-#endif  // RECOVERY_INSTALL_H_
+int register_update_commands(RecoveryCommandContext *ctx);
+
+#endif  // RECOVERY_COMMANDS_H_

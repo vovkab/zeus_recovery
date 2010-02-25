@@ -33,6 +33,9 @@
 #include "roots.h"
 #include "verifier.h"
 #include "firmware.h"
+#include "legacy.h"
+
+#include "extendedcommands.h"
 
 #define ASSUMED_UPDATE_BINARY_NAME  "META-INF/com/google/android/update-binary"
 #define PUBLIC_KEYS_FILE "/res/keys"
@@ -103,7 +106,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
     const ZipEntry* binary_entry =
             mzFindZipEntry(zip, ASSUMED_UPDATE_BINARY_NAME);
     if (binary_entry == NULL) {
-        return INSTALL_CORRUPT;
+        return INSTALL_ERROR;
     }
 
     char* binary = "/tmp/update_binary";
@@ -239,7 +242,21 @@ handle_update_package(const char *path, ZipArchive *zip)
     // Update should take the rest of the progress bar.
     ui_print("Installing update...\n");
 
-    int result = try_update_binary(path, zip);
+    // Try installing via the update-script first, because we 
+    // have more control over the asserts it may contain.
+    // If it does not exist, try the update-binary.
+    if (register_package_root(zip, path) < 0) {
+        LOGE("Can't register package root\n");
+        return INSTALL_ERROR;
+    }
+    const ZipEntry *script_entry;
+    script_entry = find_update_script(zip);
+    int result = handle_update_script(zip, script_entry);
+    if (result == INSTALL_UPDATE_SCRIPT_MISSING)
+    {
+        result = try_update_binary(path, zip);
+    }
+    
     register_package_root(NULL, NULL);  // Unregister package root
     return result;
 }
@@ -340,27 +357,30 @@ install_package(const char *root_path)
     ui_print("Opening update package...\n");
     LOGI("Update file path: %s\n", path);
 
-    int numKeys;
-    RSAPublicKey* loadedKeys = load_keys(PUBLIC_KEYS_FILE, &numKeys);
-    if (loadedKeys == NULL) {
-        LOGE("Failed to load keys\n");
-        return INSTALL_CORRUPT;
-    }
-    LOGI("%d key(s) loaded from %s\n", numKeys, PUBLIC_KEYS_FILE);
-
-    // Give verification half the progress bar...
-    ui_print("Verifying update package...\n");
-    ui_show_progress(
-            VERIFICATION_PROGRESS_FRACTION,
-            VERIFICATION_PROGRESS_TIME);
-
     int err;
-    err = verify_file(path, loadedKeys, numKeys);
-    free(loadedKeys);
-    LOGI("verify_file returned %d\n", err);
-    if (err != VERIFY_SUCCESS) {
-        LOGE("signature verification failed\n");
-        return INSTALL_CORRUPT;
+
+    if (signature_check_enabled) {
+        int numKeys;
+        RSAPublicKey* loadedKeys = load_keys(PUBLIC_KEYS_FILE, &numKeys);
+        if (loadedKeys == NULL) {
+            LOGE("Failed to load keys\n");
+            return INSTALL_CORRUPT;
+        }
+        LOGI("%d key(s) loaded from %s\n", numKeys, PUBLIC_KEYS_FILE);
+
+        // Give verification half the progress bar...
+        ui_print("Verifying update package...\n");
+        ui_show_progress(
+                VERIFICATION_PROGRESS_FRACTION,
+                VERIFICATION_PROGRESS_TIME);
+
+        err = verify_file(path, loadedKeys, numKeys);
+        free(loadedKeys);
+        LOGI("verify_file returned %d\n", err);
+        if (err != VERIFY_SUCCESS) {
+            LOGE("signature verification failed\n");
+            return INSTALL_CORRUPT;
+        }
     }
 
     /* Try to open the package.

@@ -38,6 +38,9 @@
 #include "roots.h"
 #include "recovery_ui.h"
 
+#include "extendedcommands.h"
+#include "commands.h"
+
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
   { "update_package", required_argument, NULL, 'u' },
@@ -45,6 +48,8 @@ static const struct option OPTIONS[] = {
   { "wipe_cache", no_argument, NULL, 'c' },
   { NULL, 0, NULL, 0 },
 };
+
+static int allow_display_toggle = 1;
 
 static const char *COMMAND_FILE = "CACHE:recovery/command";
 static const char *INTENT_FILE = "CACHE:recovery/intent";
@@ -209,7 +214,7 @@ get_args(int *argc, char ***argv) {
     set_bootloader_message(&boot);
 }
 
-static void
+void
 set_sdcard_update_bootloader_message()
 {
     struct bootloader_message boot;
@@ -300,7 +305,7 @@ prepend_title(char** headers) {
     return new_headers;
 }
 
-static int
+int
 get_menu_selection(char** headers, char** items, int menu_only) {
     // throw away keys pressed previously, so user doesn't
     // accidentally trigger menu items.
@@ -310,7 +315,7 @@ get_menu_selection(char** headers, char** items, int menu_only) {
     int selected = 0;
     int chosen_item = -1;
 
-    while (chosen_item < 0) {
+    while (chosen_item < 0 && chosen_item != GO_BACK) {
         int key = ui_wait_key();
         int visible = ui_text_visible();
 
@@ -331,6 +336,9 @@ get_menu_selection(char** headers, char** items, int menu_only) {
                     break;
                 case NO_ACTION:
                     break;
+                case GO_BACK:
+                    chosen_item = GO_BACK;
+                    break;
             }
         } else if (!menu_only) {
             chosen_item = action;
@@ -338,6 +346,7 @@ get_menu_selection(char** headers, char** items, int menu_only) {
     }
 
     ui_end_menu();
+    ui_clear_key_queue();
     return chosen_item;
 }
 
@@ -389,7 +398,9 @@ prompt_and_wait()
         finish_recovery(NULL);
         ui_reset_progress();
 
+        allow_display_toggle = 1;
         int chosen_item = get_menu_selection(headers, MENU_ITEMS, 0);
+        allow_display_toggle = 0;
 
         // device-specific code may take some action here.  It may
         // return one of the core actions handled in the switch
@@ -429,6 +440,20 @@ prompt_and_wait()
                         ui_print("\nInstall from sdcard complete.\n");
                     }
                 }
+                break;
+            case ITEM_INSTALL_ZIP:
+                show_install_update_menu();
+                break;
+            case ITEM_BACKUP:
+                do_nandroid_backup();
+                break;
+            case ITEM_RESTORE:
+                show_nandroid_restore_menu();
+                break;
+            case ITEM_MOUNT_SDCARD:
+                if (ensure_root_path_mounted("SDCARD:") != 0) {
+                    LOGE ("Can't mount /sdcard\n");
+                }    
                 break;
         }
     }
@@ -482,6 +507,11 @@ main(int argc, char **argv)
     fprintf(stderr, "\n");
 
     int status = INSTALL_SUCCESS;
+    
+    RecoveryCommandContext ctx = { NULL };
+    if (register_update_commands(&ctx)) {
+        LOGE("Can't install update commands\n");
+    }
 
     if (update_package != NULL) {
         status = install_package(update_package);
@@ -510,4 +540,8 @@ main(int argc, char **argv)
     sync();
     reboot(RB_AUTOBOOT);
     return EXIT_SUCCESS;
+}
+
+int get_allow_toggle_display() {
+    return allow_display_toggle;
 }
